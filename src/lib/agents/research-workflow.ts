@@ -119,15 +119,45 @@ export const researchAgents: ResearchAgentDefinition[] = [
 ];
 
 export const researchWorkflowSteps = [
-  "Generate non-LinkedIn source queries for the target segment",
-  "Extract a deduplicated company pool from approved source types",
-  "Research company reality and commercial activity deeply",
-  "Find the best decision maker or mark company_good_person_missing",
-  "Research the selected person through non-LinkedIn public sources",
-  "Verify person-company relation and classify all evidence by confidence",
-  "Generate E4N score, data confidence score, and action category",
-  "Recommend approach strategy and relationship move",
-  "Write one candidate report as Markdown plus JSON",
+  "Build a qualified company pool",
+  "Verify company commercial reality",
+  "Find the owner, founder, general manager, or decision maker",
+  "Analyze the person and company together",
+  "Generate E4N fit score and data confidence score",
+  "Recommend the next action",
+] as const;
+
+export const researchPipelineStages = [
+  {
+    id: "qualified_company_pool",
+    label: "Nitelikli şirket havuzu bul",
+    ownerAgent: "company_extraction_agent",
+  },
+  {
+    id: "company_commercial_verification",
+    label: "Şirketin ticari gerçekliğini doğrula",
+    ownerAgent: "company_deep_research_agent",
+  },
+  {
+    id: "decision_maker_discovery",
+    label: "Şirketin sahibini / kurucusunu / genel müdürünü / karar vericisini bul",
+    ownerAgent: "decision_maker_finder_agent",
+  },
+  {
+    id: "person_company_analysis",
+    label: "Kişi ve şirketi birlikte analiz et",
+    ownerAgent: "person_deep_research_agent",
+  },
+  {
+    id: "e4n_fit_scoring",
+    label: "E4N uygunluk skoru ver",
+    ownerAgent: "e4n_scoring_agent",
+  },
+  {
+    id: "next_action_recommendation",
+    label: "Aksiyon öner",
+    ownerAgent: "outreach_strategy_agent",
+  },
 ] as const;
 
 export const researchSourceTypes = [

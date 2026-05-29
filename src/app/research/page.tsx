@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { runResearchOrchestratorAction } from "@/app/actions";
+import { researchPipelineStages } from "@/lib/agents/research-workflow";
 import { buildDuckDuckGoSearchUrl, buildGoogleSearchUrl } from "@/lib/search/free-research";
 import { listResearchTasks } from "@/lib/supabase/queries";
 
@@ -14,8 +15,8 @@ export default async function ResearchPage() {
             <h1 className="text-2xl font-semibold">Research Orchestrator</h1>
             <p className="mt-1 max-w-3xl text-sm text-[#69746d]">
               Describe who E4N should find. The orchestrator uses DeepSeek V4 Flash through OpenRouter to create a
-              company-first roadmap, free public source tasks, and public LinkedIn profile search queries without paid
-              search APIs.
+              company-first roadmap: qualified company pool, commercial verification, decision maker discovery,
+              person-company analysis, E4N scoring, and next action.
             </p>
           </div>
           <span className="w-fit rounded-md bg-[#e4eee9] px-2 py-1 text-xs font-medium text-[#1f6f5b]">
@@ -50,8 +51,8 @@ export default async function ResearchPage() {
               />
             </div>
             <div className="rounded-md bg-[#f6f8f4] p-3 text-sm text-[#69746d]">
-              Free mode: no SerpAPI, Google API, Brave API, Tavily, or Exa. The bot creates manual search links and can
-              fetch only public source URLs you provide.
+              Free mode: no SerpAPI, Google API, Brave API, Tavily, Exa, or LinkedIn. The bot creates staged research
+              tasks and can fetch only public source URLs you provide.
             </div>
           </div>
           <label className="mt-4 block text-sm font-medium" htmlFor="source_urls">
@@ -68,11 +69,18 @@ export default async function ResearchPage() {
           </button>
         </form>
 
-        <div className="mt-4 rounded-md border border-[#d8ded5] bg-[#f6f8f4] p-4 text-sm text-[#34413a]">
-          LinkedIn rule: the bot creates search links like <code>site:linkedin.com/in</code>. It does not open LinkedIn,
-          log in, scrape profiles, or automate outreach. If a public LinkedIn result URL is later supplied, it is stored
-          only as a source signal.
-        </div>
+        <section className="mt-4 rounded-md border border-[#d8ded5] bg-[#f6f8f4] p-4">
+          <h2 className="text-sm font-semibold text-[#1e2b23]">Research strategy</h2>
+          <div className="mt-3 grid gap-2 md:grid-cols-3">
+            {researchPipelineStages.map((stage, index) => (
+              <div className="rounded-md border border-[#d8ded5] bg-white p-3" key={stage.id}>
+                <p className="text-xs font-semibold uppercase text-[#69746d]">Step {index + 1}</p>
+                <p className="mt-1 text-sm text-[#1e2b23]">{stage.label}</p>
+                <p className="mt-2 text-xs text-[#69746d]">{stage.ownerAgent}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
         <section className="mt-5 rounded-md border border-[#d8ded5] bg-white">
           <div className="border-b border-[#edf0ea] px-4 py-3">
@@ -101,6 +109,13 @@ export default async function ResearchPage() {
                   typeof task.metadata.duckduckgo_search_url === "string"
                     ? task.metadata.duckduckgo_search_url
                     : buildDuckDuckGoSearchUrl(query);
+                const pipelineStage =
+                  typeof task.metadata === "object" &&
+                  task.metadata &&
+                  "pipeline_stage" in task.metadata &&
+                  typeof task.metadata.pipeline_stage === "string"
+                    ? task.metadata.pipeline_stage
+                    : null;
 
                 return (
                   <div className="grid gap-3 p-4 xl:grid-cols-[1fr_180px_120px]" key={String(task.id)}>
@@ -110,6 +125,11 @@ export default async function ResearchPage() {
                         <span className="rounded-md bg-[#f1f5f0] px-2 py-1 text-xs text-[#34413a]">
                           P{String(task.priority ?? 5)}
                         </span>
+                        {pipelineStage ? (
+                          <span className="rounded-md bg-[#e4eee9] px-2 py-1 text-xs text-[#1f6f5b]">
+                            {pipelineStage}
+                          </span>
+                        ) : null}
                       </div>
                       <p className="mt-2 text-sm text-[#34413a]">{query}</p>
                       <div className="mt-2 flex gap-3">
