@@ -10,7 +10,7 @@ import {
   buildRelationshipSignal,
   scoreCandidate,
 } from "@/lib/agents/deterministic";
-import { runResearchOrchestrator } from "@/lib/agents/orchestrator";
+import { runResearchOrchestrator, sourceUrlsFromText } from "@/lib/agents/orchestrator";
 import { targetTypes, type TargetType } from "@/lib/domain";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -195,7 +195,7 @@ export async function runResearchOrchestratorAction(formData: FormData) {
 
   const prompt = text(formData, "prompt");
   const maxTasks = Number(text(formData, "max_tasks") || "8");
-  const runSearch = text(formData, "run_search") !== "off";
+  const sourceUrls = sourceUrlsFromText(text(formData, "source_urls"));
 
   if (!prompt) {
     throw new Error("Research prompt is required.");
@@ -204,7 +204,7 @@ export async function runResearchOrchestratorAction(formData: FormData) {
   await runResearchOrchestrator(supabase, {
     prompt,
     maxTasks,
-    runSearch,
+    sourceUrls,
   });
 
   revalidatePath("/");

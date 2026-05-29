@@ -2,7 +2,12 @@ import { z } from "zod";
 
 import { OpenRouterProvider } from "@/lib/ai/openrouter";
 import { researchSourceTypes } from "@/lib/agents/research-workflow";
-import { buildGoogleSearchUrl, hasWebSearchProvider, searchWeb } from "@/lib/search/web-search";
+import {
+  buildDuckDuckGoSearchUrl,
+  buildGoogleSearchUrl,
+  fetchPublicSource,
+  parseSourceUrls,
+} from "@/lib/search/free-research";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const ResearchTaskSchema = z.object({
@@ -35,7 +40,7 @@ export type OrchestratorPlan = z.infer<typeof OrchestratorPlanSchema>;
 type OrchestratorRunOptions = {
   prompt: string;
   maxTasks?: number;
-  runSearch?: boolean;
+  sourceUrls?: string[];
 };
 
 type AdminClient = SupabaseClient;
@@ -54,10 +59,10 @@ function fallbackPlan(prompt: string, maxTasks: number): OrchestratorPlan {
     mission_summary: prompt,
     assumptions: ["OpenRouter plan generation failed or is not configured; deterministic fallback created safe research tasks."],
     roadmap: [
-      "Build a company pool first.",
-      "Verify company reality from at least two public sources.",
-      "Find likely decision makers without opening LinkedIn.",
-      "Store LinkedIn only as a public search-result URL when visible.",
+    "Build a company pool from free public source URLs and manual search links.",
+    "Verify company reality from at least two public sources when possible.",
+    "Find likely decision makers without opening LinkedIn.",
+    "Store LinkedIn only when a public search-result URL is supplied by the user.",
       "Move only evidence-backed candidates to review.",
     ],
     source_tasks: baseQueries.slice(0, maxTasks).map((query, index) => ({
@@ -87,10 +92,15 @@ You receive a Turkish natural-language research mission and must create a concre
 
 Rules:
 - Use OpenRouter reasoning only for planning. Do not claim you browsed the web.
+- You do not have web search, browser, crawler, or external lookup access inside this LLM call.
+- Never say you found, verified, checked, browsed, searched the web, saw a page, or confirmed a fact.
+- Phrase all outputs as planned queries, source hypotheses, and next research tasks.
+- Fully free mode only: do not rely on paid, credit-based, or metered search APIs.
 - LinkedIn is allowed only as a public search-result URL discovery target.
 - Never instruct login, scraping, browser automation, profile parsing, or automated LinkedIn collection.
 - The workflow is company-first: company pool -> company validation -> decision maker search -> evidence confidence -> candidate report.
 - Use these source types when possible: ${allowedSourceText}.
+- Prefer free public source URLs supplied by the user, official websites, directories, fair pages, event pages, associations, chambers, and technopark lists.
 - Produce compact JSON only.`;
 
   const user = `Mission:
@@ -139,7 +149,7 @@ Create at most ${maxTasks} source_tasks and at most 5 LinkedIn profile search qu
 
 export async function runResearchOrchestrator(
   supabase: AdminClient,
-  { prompt, maxTasks = 8, runSearch = true }: OrchestratorRunOptions,
+  { prompt, maxTasks = 8, sourceUrls = [] }: OrchestratorRunOptions,
 ) {
   const startedAt = new Date().toISOString();
   const safeMaxTasks = Math.max(1, Math.min(20, maxTasks));
@@ -174,8 +184,9 @@ export async function runResearchOrchestrator(
   }));
 
   const allTasks = [...sourceTasks, ...linkedinTasks];
+  const directSourceUrls = sourceUrls.slice(0, 20);
 
-  const { data: researchTasks, error: taskError } = await supabase
+  const { error: taskError } = await supabase
     .from("research_tasks")
     .insert(
       allTasks.map((task) => ({
@@ -183,11 +194,13 @@ export async function runResearchOrchestrator(
         source_type: task.source_type,
         query: task.query,
         priority: task.priority,
-        status: hasWebSearchProvider() && runSearch ? "running" : "pending_search_provider",
+        status: "manual_search_ready",
         metadata: {
           expected_output: task.expected_output,
           why_this_query: task.why_this_query,
           google_search_url: buildGoogleSearchUrl(task.query),
+          duckduckgo_search_url: buildDuckDuckGoSearchUrl(task.query),
+          free_mode: true,
           linkedin_rule:
             task.source_type === "google_linkedin_profile_result"
               ? "Store only public search result URL; do not open LinkedIn."
@@ -207,43 +220,43 @@ export async function runResearchOrchestrator(
       task_type: "orchestrate_research_mission",
       status: "completed",
       priority: 1,
-      input_json: { prompt, maxTasks: safeMaxTasks, runSearch },
-      output_json: { plan, research_task_count: allTasks.length },
+      input_json: { prompt, maxTasks: safeMaxTasks, sourceUrls: directSourceUrls },
+      output_json: {
+        plan,
+        research_task_count: allTasks.length,
+        direct_source_count: directSourceUrls.length,
+        ai_browsed_web: false,
+        ai_role: "planning_only",
+      },
       executed_at: startedAt,
     })
     .select("id")
     .single();
 
-  const searchResultsByTask: Array<{ task_id: string; result_count: number }> = [];
+  const fetchedSourceResults: Array<{ url: string; status: "completed" | "failed"; error?: string }> = [];
 
-  if (hasWebSearchProvider() && runSearch && researchTasks) {
-    for (const task of researchTasks.slice(0, 8)) {
-      const results = await searchWeb(String(task.query), 5);
-      searchResultsByTask.push({ task_id: String(task.id), result_count: results.length });
+  for (const url of directSourceUrls) {
+    try {
+      const result = await fetchPublicSource(url);
+      fetchedSourceResults.push({ url, status: "completed" });
 
-      if (results.length > 0) {
-        await supabase.from("research_results").insert(
-          results.map((result) => ({
-            raw_result: {
-              title: result.title,
-              url: result.url,
-              snippet: result.snippet,
-              source: result.source,
-              research_task_id: task.id,
-              source_type: task.source_type,
-              is_linkedin_public_result:
-                String(task.source_type) === "google_linkedin_profile_result" ||
-                result.url.includes("linkedin.com/in/"),
-            },
-            status: "new",
-          })),
-        );
-      }
-
-      await supabase
-        .from("research_tasks")
-        .update({ status: "completed", result_count: results.length })
-        .eq("id", task.id);
+      await supabase.from("research_results").insert({
+        raw_result: {
+          title: result.title,
+          url: result.url,
+          snippet: result.snippet,
+          source: result.source,
+          free_mode: true,
+          is_linkedin_public_result: result.url.includes("linkedin.com/in/"),
+        },
+        status: "new",
+      });
+    } catch (error) {
+      fetchedSourceResults.push({
+        url,
+        status: "failed",
+        error: error instanceof Error ? error.message : "Unknown source fetch error",
+      });
     }
   }
 
@@ -252,8 +265,15 @@ export async function runResearchOrchestrator(
     task_id: agentTask?.id ?? null,
     model_provider: modelProvider,
     model_name: modelName,
-    input_json: { prompt, maxTasks: safeMaxTasks },
-    output_json: { plan, searchResultsByTask, raw },
+    input_json: { prompt, maxTasks: safeMaxTasks, sourceUrls: directSourceUrls },
+    output_json: {
+      plan,
+      fetchedSourceResults,
+      raw,
+      free_mode: true,
+      ai_browsed_web: false,
+      ai_role: "planning_only",
+    },
     status,
     error_message: errorMessage,
   });
@@ -261,7 +281,12 @@ export async function runResearchOrchestrator(
   return {
     plan,
     researchTaskCount: allTasks.length,
-    searchProviderEnabled: hasWebSearchProvider(),
-    searchedTaskCount: searchResultsByTask.length,
+    searchProviderEnabled: false,
+    searchedTaskCount: 0,
+    fetchedSourceCount: fetchedSourceResults.filter((result) => result.status === "completed").length,
   };
+}
+
+export function sourceUrlsFromText(raw: string) {
+  return parseSourceUrls(raw);
 }
