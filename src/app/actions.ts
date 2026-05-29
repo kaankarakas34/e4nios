@@ -202,13 +202,59 @@ export async function createLinearReviewTaskAction(formData: FormData) {
   const fitScore = text(formData, "fit_score");
   const title = `Review high-priority candidate: ${fullName}`;
   const description = `Fit Score: ${fitScore || "n/a"}\nSuggested Action: Human review required before outbound communication.\nReason: Candidate is in E4N Relationship Brain review queue.`;
+  let linearIssueId: string | null = null;
+  let linearIssueUrl: string | null = null;
+
+  if (process.env.LINEAR_API_KEY && process.env.LINEAR_TEAM_ID) {
+    const response = await fetch("https://api.linear.app/graphql", {
+      method: "POST",
+      headers: {
+        Authorization: process.env.LINEAR_API_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `
+          mutation CreateIssue($input: IssueCreateInput!) {
+            issueCreate(input: $input) {
+              success
+              issue {
+                id
+                identifier
+                url
+              }
+            }
+          }
+        `,
+        variables: {
+          input: {
+            teamId: process.env.LINEAR_TEAM_ID,
+            projectId: process.env.LINEAR_PROJECT_ID || undefined,
+            title,
+            description,
+            priority: 2,
+          },
+        },
+      }),
+    });
+
+    if (response.ok) {
+      const payload = await response.json();
+      linearIssueId =
+        payload.data?.issueCreate?.issue?.identifier ??
+        payload.data?.issueCreate?.issue?.id ??
+        null;
+      linearIssueUrl = payload.data?.issueCreate?.issue?.url ?? null;
+    }
+  }
 
   await supabase.from("linear_tasks").insert({
     related_person_id: personId,
+    linear_issue_id: linearIssueId,
+    linear_issue_url: linearIssueUrl,
     title,
     description,
     task_type: "high_priority_candidate_review",
-    status: "created_locally",
+    status: linearIssueId ? "created_in_linear" : "created_locally",
   });
 
   revalidatePath("/review");
