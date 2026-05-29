@@ -185,6 +185,57 @@ export type Database = {
         };
         Update: Partial<Database["public"]["Tables"]["linkedin_accounts"]["Insert"]>;
       };
+      research_tasks: {
+        Row: {
+          id: string;
+          target_segment: string;
+          source_type: string;
+          query: string;
+          priority: number | null;
+          status: string | null;
+          result_count: number | null;
+          metadata: Json;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          target_segment: string;
+          source_type: string;
+          query: string;
+          priority?: number | null;
+          status?: string | null;
+          result_count?: number | null;
+          metadata?: Json;
+        };
+        Update: Partial<Database["public"]["Tables"]["research_tasks"]["Insert"]>;
+      };
+      candidate_reports: {
+        Row: {
+          id: string;
+          person_id: string | null;
+          company_id: string | null;
+          file_name: string;
+          markdown_content: string;
+          json_content: Json;
+          sources: Json;
+          data_confidence_score: number | null;
+          action_category: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          person_id?: string | null;
+          company_id?: string | null;
+          file_name: string;
+          markdown_content: string;
+          json_content?: Json;
+          sources?: Json;
+          data_confidence_score?: number | null;
+          action_category?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["candidate_reports"]["Insert"]>;
+      };
       prompt_templates: { Row: Record<string, Json>; Insert: Record<string, Json>; Update: Record<string, Json> };
       knowledge_base_items: { Row: Record<string, Json>; Insert: Record<string, Json>; Update: Record<string, Json> };
       agent_runs: { Row: Record<string, Json>; Insert: Record<string, Json>; Update: Record<string, Json> };

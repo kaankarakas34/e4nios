@@ -13,6 +13,16 @@ export type ScoringResult = {
   approach_readiness_score: number;
   explanation: string;
   score_breakdown: Record<string, string>;
+  e4n_research_breakdown?: {
+    company_reality_score: number;
+    decision_maker_score: number;
+    commercial_activity_score: number;
+    network_potential_score: number;
+    e4n_fit_score: number;
+    visibility_score: number;
+    data_confidence_score: number;
+    action_category: string;
+  };
 };
 
 export type ApproachStrategyResult = {
@@ -39,6 +49,7 @@ export type IntelligenceProfileResult = {
   profile_summary: string;
   company_summary: string;
   linkedin_analysis: string;
+  non_linkedin_research_plan?: string;
   content_analysis: string;
   reputation_signals: string;
   red_flags: string;
