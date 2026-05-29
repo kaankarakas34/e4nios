@@ -1,0 +1,14 @@
+-- Applied to Supabase project e4ncrm (ysvdqyzfeeffzwbhtwvk) on 2026-05-29.
+-- This migration reset the legacy public CRM tables and created the fresh
+-- E4N Relationship Brain MVP schema with RLS enabled for authenticated users.
+--
+-- Source of truth after application:
+-- - 22 public tables
+-- - vector extension enabled
+-- - target/stage/status enums
+-- - default outreach safety policy seeded
+-- - 3 prompt templates seeded
+-- - 3 knowledge base items seeded
+--
+-- The full SQL was applied through the Supabase MCP migration API under:
+-- reset_e4n_relationship_brain_mvp_schema
