@@ -160,6 +160,31 @@ export type Database = {
         };
         Update: Partial<Database["public"]["Tables"]["relationship_moves"]["Insert"]>;
       };
+      linkedin_accounts: {
+        Row: {
+          id: string;
+          linkedin_sub: string;
+          name: string | null;
+          email: string | null;
+          picture_url: string | null;
+          locale: string | null;
+          raw_profile: Json;
+          connected_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          linkedin_sub: string;
+          name?: string | null;
+          email?: string | null;
+          picture_url?: string | null;
+          locale?: string | null;
+          raw_profile?: Json;
+          connected_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["linkedin_accounts"]["Insert"]>;
+      };
       prompt_templates: { Row: Record<string, Json>; Insert: Record<string, Json>; Update: Record<string, Json> };
       knowledge_base_items: { Row: Record<string, Json>; Insert: Record<string, Json>; Update: Record<string, Json> };
       agent_runs: { Row: Record<string, Json>; Insert: Record<string, Json>; Update: Record<string, Json> };

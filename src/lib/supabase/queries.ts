@@ -325,3 +325,19 @@ export async function listPromptTemplates() {
 
   return data ?? [];
 }
+
+export async function listLinkedInAccounts() {
+  const supabase = createAdminClient();
+
+  if (!supabase) {
+    return [];
+  }
+
+  const { data } = await supabase
+    .from("linkedin_accounts")
+    .select("id, name, email, picture_url, locale, connected_at, updated_at")
+    .order("updated_at", { ascending: false })
+    .limit(10);
+
+  return data ?? [];
+}
