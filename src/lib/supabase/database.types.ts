@@ -92,6 +92,74 @@ export type Database = {
         };
         Update: Partial<Database["public"]["Tables"]["message_drafts"]["Insert"]>;
       };
+      relationship_signals: {
+        Row: {
+          id: string;
+          person_id: string | null;
+          company_id: string | null;
+          signal_type: string;
+          source_type: string;
+          source_url: string | null;
+          title: string;
+          summary: string;
+          confidence_score: number;
+          status: string;
+          metadata: Json;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          person_id?: string | null;
+          company_id?: string | null;
+          signal_type?: string;
+          source_type?: string;
+          source_url?: string | null;
+          title: string;
+          summary: string;
+          confidence_score?: number;
+          status?: string;
+          metadata?: Json;
+        };
+        Update: Partial<Database["public"]["Tables"]["relationship_signals"]["Insert"]>;
+      };
+      relationship_moves: {
+        Row: {
+          id: string;
+          person_id: string | null;
+          signal_id: string | null;
+          move_type: string;
+          channel: string;
+          stage: string;
+          title: string;
+          body: string | null;
+          status: string;
+          approval_notes: string | null;
+          approved_at: string | null;
+          completed_at: string | null;
+          due_at: string | null;
+          metadata: Json;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          person_id?: string | null;
+          signal_id?: string | null;
+          move_type?: string;
+          channel?: string;
+          stage?: string;
+          title: string;
+          body?: string | null;
+          status?: string;
+          approval_notes?: string | null;
+          approved_at?: string | null;
+          completed_at?: string | null;
+          due_at?: string | null;
+          metadata?: Json;
+        };
+        Update: Partial<Database["public"]["Tables"]["relationship_moves"]["Insert"]>;
+      };
       prompt_templates: { Row: Record<string, Json>; Insert: Record<string, Json>; Update: Record<string, Json> };
       knowledge_base_items: { Row: Record<string, Json>; Insert: Record<string, Json>; Update: Record<string, Json> };
       agent_runs: { Row: Record<string, Json>; Insert: Record<string, Json>; Update: Record<string, Json> };

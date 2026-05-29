@@ -9,6 +9,8 @@ export async function getDashboardMetrics() {
       review: 0,
       fit85: 0,
       messages: 0,
+      signals: 0,
+      pendingMoves: 0,
       agentErrors: 0,
     };
   }
@@ -18,6 +20,8 @@ export async function getDashboardMetrics() {
     review,
     fit85,
     messages,
+    signals,
+    pendingMoves,
     agentErrors,
   ] = await Promise.all([
     supabase.from("people").select("id", { count: "exact", head: true }),
@@ -34,6 +38,13 @@ export async function getDashboardMetrics() {
       .select("id", { count: "exact", head: true })
       .eq("status", "draft"),
     supabase
+      .from("relationship_signals")
+      .select("id", { count: "exact", head: true }),
+    supabase
+      .from("relationship_moves")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending_approval"),
+    supabase
       .from("agent_tasks")
       .select("id", { count: "exact", head: true })
       .eq("status", "failed"),
@@ -44,6 +55,8 @@ export async function getDashboardMetrics() {
     review: review.count ?? 0,
     fit85: fit85.count ?? 0,
     messages: messages.count ?? 0,
+    signals: signals.count ?? 0,
+    pendingMoves: pendingMoves.count ?? 0,
     agentErrors: agentErrors.count ?? 0,
   };
 }
@@ -62,6 +75,38 @@ export async function listCandidates() {
     )
     .order("created_at", { ascending: false })
     .limit(50);
+
+  return data ?? [];
+}
+
+export async function listRelationshipSignals() {
+  const supabase = createAdminClient();
+
+  if (!supabase) {
+    return [];
+  }
+
+  const { data } = await supabase
+    .from("relationship_signals")
+    .select("id, person_id, signal_type, source_type, source_url, title, summary, confidence_score, status, created_at")
+    .order("created_at", { ascending: false })
+    .limit(80);
+
+  return data ?? [];
+}
+
+export async function listRelationshipMoves() {
+  const supabase = createAdminClient();
+
+  if (!supabase) {
+    return [];
+  }
+
+  const { data } = await supabase
+    .from("relationship_moves")
+    .select("id, person_id, signal_id, move_type, channel, stage, title, body, status, approval_notes, approved_at, completed_at, due_at, created_at")
+    .order("created_at", { ascending: false })
+    .limit(80);
 
   return data ?? [];
 }

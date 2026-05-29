@@ -6,6 +6,8 @@ import {
   buildApproachStrategy,
   buildIntelligenceProfile,
   buildMessageDrafts,
+  buildRelationshipMoves,
+  buildRelationshipSignal,
   scoreCandidate,
 } from "@/lib/agents/deterministic";
 import { targetTypes, type TargetType } from "@/lib/domain";
@@ -98,6 +100,8 @@ export async function createCandidateAction(formData: FormData) {
   );
   const approach = buildApproachStrategy(score);
   const messages = buildMessageDrafts({ fullName, company: companyName, title, targetType, manualLinkedin });
+  const signal = buildRelationshipSignal({ fullName, company: companyName, title, targetType, manualLinkedin });
+  const moves = buildRelationshipMoves({ fullName, company: companyName, title, targetType, manualLinkedin }, score);
 
   const taskInserts = [
     "generate_fit_score",
@@ -118,6 +122,16 @@ export async function createCandidateAction(formData: FormData) {
     .from("agent_tasks")
     .insert(taskInserts)
     .select("id, task_type");
+
+  const { data: createdSignal } = await supabase
+    .from("relationship_signals")
+    .insert({
+      person_id: personId,
+      company_id: companyId,
+      ...signal,
+    })
+    .select("id")
+    .single();
 
   await Promise.all([
     supabase.from("fit_scores").insert({
@@ -142,6 +156,13 @@ export async function createCandidateAction(formData: FormData) {
         status: "draft" as const,
       })),
     ),
+    supabase.from("relationship_moves").insert(
+      moves.map((move) => ({
+        person_id: personId,
+        signal_id: createdSignal?.id ?? null,
+        ...move,
+      })),
+    ),
     supabase.from("agent_runs").insert(
       (tasks ?? []).map((task) => ({
         agent_name: task.task_type,
@@ -159,6 +180,8 @@ export async function createCandidateAction(formData: FormData) {
   revalidatePath("/candidates");
   revalidatePath("/review");
   revalidatePath("/messages");
+  revalidatePath("/signals");
+  revalidatePath("/moves");
   revalidatePath("/agents");
 }
 
@@ -187,6 +210,61 @@ export async function updateCandidateReviewAction(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/candidates");
+  revalidatePath("/review");
+}
+
+export async function updateRelationshipSignalAction(formData: FormData) {
+  const supabase = createAdminClient();
+
+  if (!supabase) {
+    throw new Error("Supabase environment variables are not configured.");
+  }
+
+  const id = text(formData, "id");
+  const status = text(formData, "status");
+
+  const { error } = await supabase
+    .from("relationship_signals")
+    .update({ status })
+    .eq("id", id);
+
+  if (error) {
+    throw error;
+  }
+
+  revalidatePath("/");
+  revalidatePath("/signals");
+}
+
+export async function updateRelationshipMoveAction(formData: FormData) {
+  const supabase = createAdminClient();
+
+  if (!supabase) {
+    throw new Error("Supabase environment variables are not configured.");
+  }
+
+  const id = text(formData, "id");
+  const status = text(formData, "status");
+  const now = new Date().toISOString();
+
+  const update =
+    status === "approved"
+      ? { status, approved_at: now }
+      : status === "completed_manually"
+        ? { status, completed_at: now }
+        : { status };
+
+  const { error } = await supabase
+    .from("relationship_moves")
+    .update(update)
+    .eq("id", id);
+
+  if (error) {
+    throw error;
+  }
+
+  revalidatePath("/");
+  revalidatePath("/moves");
   revalidatePath("/review");
 }
 

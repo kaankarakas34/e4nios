@@ -3,7 +3,9 @@ import {
   CheckCircle2,
   Clock3,
   MessageSquareText,
+  Send,
   ShieldCheck,
+  Signal,
   Sparkles,
   TriangleAlert,
   Users,
@@ -42,6 +44,18 @@ export default async function Home() {
       value: String(dashboardMetrics.messages),
       icon: MessageSquareText,
       tone: "bg-[#f9e5e5]",
+    },
+    {
+      label: "Relationship signals",
+      value: String(dashboardMetrics.signals),
+      icon: Signal,
+      tone: "bg-[#eef1ff]",
+    },
+    {
+      label: "Pending moves",
+      value: String(dashboardMetrics.pendingMoves),
+      icon: Send,
+      tone: "bg-[#e9f6f0]",
     },
   ];
   const candidateRows: CandidateSummary[] =
@@ -103,7 +117,7 @@ export default async function Home() {
           </div>
         </header>
 
-        <section className="grid gap-3 py-5 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-3 py-5 sm:grid-cols-2 xl:grid-cols-6">
           {metrics.map((metric) => (
             <div className="rounded-md border border-[#d8ded5] bg-white p-4" key={metric.label}>
               <div className="flex items-center justify-between">

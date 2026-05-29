@@ -110,3 +110,70 @@ export function buildMessageDrafts(input: CandidateInput): MessageDraftResult {
     ],
   };
 }
+
+export function buildRelationshipSignal(input: CandidateInput) {
+  const hasManualContext = Boolean(input.manualLinkedin?.trim());
+
+  return {
+    signal_type: hasManualContext ? "manual_linkedin_context" : "manual_candidate_intake",
+    source_type: hasManualContext ? "manual_linkedin_input" : "manual_input",
+    title: hasManualContext
+      ? `${input.fullName} has manual LinkedIn context`
+      : `${input.fullName} was added manually`,
+    summary: hasManualContext
+      ? "User-provided LinkedIn/about/post/comment context is available for relationship analysis. This is not scraped data."
+      : "Candidate was added without rich context. Treat this as a low-confidence intake signal until source links or manual notes are added.",
+    confidence_score: hasManualContext ? 68 : 42,
+    status: "linked_to_candidate" as const,
+    metadata: {
+      target_type: input.targetType,
+      company: input.company ?? null,
+      privacy_note: "Manual user input; do not infer private contact details.",
+    },
+  };
+}
+
+export function buildRelationshipMoves(input: CandidateInput, score: ScoringResult) {
+  const directReady = score.approach_readiness_score >= 78 && score.risk_score <= 25;
+
+  const firstMove = directReady
+    ? {
+        move_type: "soft_touch",
+        channel: "linkedin",
+        stage: "soft_touch",
+        title: `Approve soft-touch intro for ${input.fullName}`,
+        body: "Review the candidate context, then approve a short relationship-first connection note. Do not pitch membership directly.",
+      }
+    : {
+        move_type: "warm_signal",
+        channel: "manual",
+        stage: "warm_signal",
+        title: `Find warm signal for ${input.fullName}`,
+        body: "Look for a recent post, shared context, event, or mutual connection before any direct invite.",
+      };
+
+  return [
+    {
+      ...firstMove,
+      status: "pending_approval" as const,
+      metadata: {
+        generated_by: "deterministic_mvp_fallback",
+        reason: directReady
+          ? "Approach readiness is high and risk is low."
+          : "Context or confidence is not strong enough for direct outreach.",
+      },
+    },
+    {
+      move_type: "nurture_check",
+      channel: "internal",
+      stage: "nurture",
+      title: `Schedule nurture check for ${input.fullName}`,
+      body: "If the team does not approve immediate action, revisit this candidate after more context is available.",
+      status: "pending_approval" as const,
+      metadata: {
+        generated_by: "deterministic_mvp_fallback",
+        reason: "Every candidate should have a safe next relationship path, even when outreach is not ready.",
+      },
+    },
+  ];
+}

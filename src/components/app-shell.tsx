@@ -9,7 +9,9 @@ import {
   Mail,
   Network,
   Search,
+  Send,
   Settings,
+  Signal,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -19,6 +21,8 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/candidates", label: "Candidates", icon: Users },
+  { href: "/signals", label: "Signal Inbox", icon: Signal },
+  { href: "/moves", label: "Relationship Moves", icon: Send },
   { href: "/review", label: "Review Queue", icon: ClipboardCheck },
   { href: "/messages", label: "Message Studio", icon: Mail },
   { href: "/agents", label: "Agent Runs", icon: Bot },
