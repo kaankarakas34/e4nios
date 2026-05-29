@@ -3,7 +3,7 @@ import { AiJsonRequest, AiJsonResponse, AiProvider } from "@/lib/ai/provider";
 export class OpenRouterProvider implements AiProvider {
   private readonly apiKey = process.env.OPENROUTER_API_KEY;
   private readonly defaultModel =
-    process.env.OPENROUTER_DEFAULT_MODEL ?? "openai/gpt-4.1-mini";
+    process.env.OPENROUTER_DEFAULT_MODEL ?? "deepseek/deepseek-v4-flash:free";
 
   async generateJson<T>({
     system,
@@ -20,6 +20,8 @@ export class OpenRouterProvider implements AiProvider {
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "https://e4nios.vercel.app",
+        "X-Title": "E4N Relationship Brain",
       },
       body: JSON.stringify({
         model,

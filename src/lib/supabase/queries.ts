@@ -294,6 +294,22 @@ export async function listAgentTasks() {
   return data ?? [];
 }
 
+export async function listResearchTasks() {
+  const supabase = createAdminClient();
+
+  if (!supabase) {
+    return [];
+  }
+
+  const { data } = await supabase
+    .from("research_tasks")
+    .select("id, target_segment, source_type, query, priority, status, result_count, metadata, created_at")
+    .order("created_at", { ascending: false })
+    .limit(80);
+
+  return data ?? [];
+}
+
 export async function listKnowledgeItems() {
   const supabase = createAdminClient();
 

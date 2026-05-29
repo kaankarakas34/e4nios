@@ -236,6 +236,13 @@ export type Database = {
         };
         Update: Partial<Database["public"]["Tables"]["candidate_reports"]["Insert"]>;
       };
+      fit_scores: { Row: Record<string, Json>; Insert: Record<string, Json>; Update: Record<string, Json> };
+      candidate_intelligence_profiles: {
+        Row: Record<string, Json>;
+        Insert: Record<string, Json>;
+        Update: Record<string, Json>;
+      };
+      research_results: { Row: Record<string, Json>; Insert: Record<string, Json>; Update: Record<string, Json> };
       prompt_templates: { Row: Record<string, Json>; Insert: Record<string, Json>; Update: Record<string, Json> };
       knowledge_base_items: { Row: Record<string, Json>; Insert: Record<string, Json>; Update: Record<string, Json> };
       agent_runs: { Row: Record<string, Json>; Insert: Record<string, Json>; Update: Record<string, Json> };

@@ -10,6 +10,7 @@ import {
   buildRelationshipSignal,
   scoreCandidate,
 } from "@/lib/agents/deterministic";
+import { runResearchOrchestrator } from "@/lib/agents/orchestrator";
 import { targetTypes, type TargetType } from "@/lib/domain";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -182,6 +183,32 @@ export async function createCandidateAction(formData: FormData) {
   revalidatePath("/messages");
   revalidatePath("/signals");
   revalidatePath("/moves");
+  revalidatePath("/agents");
+}
+
+export async function runResearchOrchestratorAction(formData: FormData) {
+  const supabase = createAdminClient();
+
+  if (!supabase) {
+    throw new Error("Supabase environment variables are not configured.");
+  }
+
+  const prompt = text(formData, "prompt");
+  const maxTasks = Number(text(formData, "max_tasks") || "8");
+  const runSearch = text(formData, "run_search") !== "off";
+
+  if (!prompt) {
+    throw new Error("Research prompt is required.");
+  }
+
+  await runResearchOrchestrator(supabase, {
+    prompt,
+    maxTasks,
+    runSearch,
+  });
+
+  revalidatePath("/");
+  revalidatePath("/research");
   revalidatePath("/agents");
 }
 
