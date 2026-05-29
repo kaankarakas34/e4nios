@@ -11,30 +11,70 @@ import {
 
 import { AppShell } from "@/components/app-shell";
 import { safetyRules, type CandidateSummary } from "@/lib/domain";
+import { getDashboardMetrics, listCandidates } from "@/lib/supabase/queries";
 
-const metrics = [
-  { label: "Total candidates", value: "0", icon: Users, tone: "bg-[#e4eee9]" },
-  { label: "Review queue", value: "0", icon: Clock3, tone: "bg-[#fff1d6]" },
-  { label: "Fit 85+", value: "0", icon: CheckCircle2, tone: "bg-[#e7f3ff]" },
-  { label: "Draft messages", value: "0", icon: MessageSquareText, tone: "bg-[#f9e5e5]" },
-];
+export default async function Home() {
+  const [dashboardMetrics, candidates] = await Promise.all([
+    getDashboardMetrics(),
+    listCandidates(),
+  ]);
+  const metrics = [
+    {
+      label: "Total candidates",
+      value: String(dashboardMetrics.candidates),
+      icon: Users,
+      tone: "bg-[#e4eee9]",
+    },
+    {
+      label: "Review queue",
+      value: String(dashboardMetrics.review),
+      icon: Clock3,
+      tone: "bg-[#fff1d6]",
+    },
+    {
+      label: "Fit 85+",
+      value: String(dashboardMetrics.fit85),
+      icon: CheckCircle2,
+      tone: "bg-[#e7f3ff]",
+    },
+    {
+      label: "Draft messages",
+      value: String(dashboardMetrics.messages),
+      icon: MessageSquareText,
+      tone: "bg-[#f9e5e5]",
+    },
+  ];
+  const candidateRows: CandidateSummary[] =
+    candidates.length > 0
+      ? candidates.slice(0, 5).map((candidate) => ({
+          id: candidate.id,
+          fullName: candidate.full_name,
+          company: candidate.industry ?? "E4N pipeline",
+          title: candidate.title ?? "No title",
+          targetType: candidate.target_type ?? "member_candidate",
+          stage: candidate.relationship_stage ?? "discovered",
+          fitScore: candidate.fit_score ?? 0,
+          riskScore: candidate.risk_score ?? 0,
+          nextBestAction:
+            candidate.next_best_action ??
+            "Review candidate and complete missing context.",
+          source: candidate.source ?? "Manual",
+        }))
+      : [
+          {
+            id: "empty",
+            fullName: "Manual intake ready",
+            company: "Fresh Supabase schema",
+            title: "Core loop",
+            targetType: "member_candidate",
+            stage: "discovered",
+            fitScore: 0,
+            riskScore: 0,
+            nextBestAction: "Add first candidate, then run AI analysis.",
+            source: "MVP",
+          },
+        ];
 
-const sampleCandidates: CandidateSummary[] = [
-  {
-    id: "sample-1",
-    fullName: "Manual intake ready",
-    company: "Fresh Supabase schema",
-    title: "Core loop",
-    targetType: "member_candidate",
-    stage: "discovered",
-    fitScore: 0,
-    riskScore: 0,
-    nextBestAction: "Add first candidate, then run AI analysis.",
-    source: "MVP",
-  },
-];
-
-export default function Home() {
   return (
     <AppShell>
       <div className="px-5 py-5 sm:px-8">
@@ -86,7 +126,7 @@ export default function Home() {
               </span>
             </div>
             <div className="divide-y divide-[#edf0ea]">
-              {sampleCandidates.map((candidate) => (
+              {candidateRows.map((candidate) => (
                 <div className="grid gap-3 px-4 py-4 md:grid-cols-[1fr_120px_120px_160px]" key={candidate.id}>
                   <div>
                     <p className="font-medium">{candidate.fullName}</p>
