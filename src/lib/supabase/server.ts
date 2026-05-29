@@ -2,13 +2,20 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 import type { Database } from "@/lib/supabase/database.types";
+import { supabasePublicKey, supabaseUrl } from "@/lib/supabase/env";
 
 export async function createClient() {
   const cookieStore = await cookies();
+  const url = supabaseUrl();
+  const key = supabasePublicKey();
+
+  if (!url || !key) {
+    throw new Error("Supabase public environment variables are not configured.");
+  }
 
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    key,
     {
       cookies: {
         getAll() {

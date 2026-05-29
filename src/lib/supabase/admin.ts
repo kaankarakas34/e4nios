@@ -1,10 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 
+import { supabaseServerKey, supabaseUrl } from "@/lib/supabase/env";
+
 export function createAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = supabaseUrl();
+  const key = supabaseServerKey();
 
   if (!url || !key) {
     return null;
