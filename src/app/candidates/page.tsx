@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { AppShell } from "@/components/app-shell";
 import { createCandidateAction } from "@/app/actions";
 import { targetTypes } from "@/lib/domain";
@@ -38,7 +40,7 @@ export default async function CandidatesPage() {
               <p className="px-4 py-5 text-sm text-[#69746d]">No candidates yet.</p>
             ) : (
               candidates.map((candidate) => (
-                <div className="grid gap-3 px-4 py-4 md:grid-cols-[1fr_120px_120px_160px]" key={candidate.id}>
+                <div className="grid gap-3 px-4 py-4 md:grid-cols-[1fr_120px_120px_160px_80px]" key={candidate.id}>
                   <div>
                     <p className="font-medium">{candidate.full_name}</p>
                     <p className="mt-1 text-sm text-[#69746d]">{candidate.title ?? "No title"} · {candidate.target_type}</p>
@@ -52,6 +54,12 @@ export default async function CandidatesPage() {
                     <p className="text-sm font-semibold">{candidate.review_status}</p>
                   </div>
                   <p className="text-sm text-[#34413a]">{candidate.next_best_action ?? "Review candidate"}</p>
+                  <Link
+                    className="inline-flex h-9 items-center justify-center rounded-md border border-[#cbd5cc] px-3 text-sm"
+                    href={`/candidates/${candidate.id}`}
+                  >
+                    Open
+                  </Link>
                 </div>
               ))
             )}

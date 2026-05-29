@@ -10,6 +10,7 @@ import {
   TriangleAlert,
   Users,
 } from "lucide-react";
+import Link from "next/link";
 
 import { AppShell } from "@/components/app-shell";
 import { safetyRules, type CandidateSummary } from "@/lib/domain";
@@ -100,20 +101,20 @@ export default async function Home() {
             </h1>
           </div>
           <div className="flex gap-2">
-            <a
+            <Link
               className="inline-flex h-10 items-center gap-2 rounded-md border border-[#cbd5cc] bg-white px-3 text-sm font-medium"
               href="/candidates"
             >
               <Users className="size-4" />
               Candidates
-            </a>
-            <a
+            </Link>
+            <Link
               className="inline-flex h-10 items-center gap-2 rounded-md bg-[#1f6f5b] px-3 text-sm font-medium text-white"
               href="/review"
             >
               <Sparkles className="size-4" />
               Review Queue
-            </a>
+            </Link>
           </div>
         </header>
 

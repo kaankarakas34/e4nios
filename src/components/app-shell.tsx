@@ -21,6 +21,8 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/candidates", label: "Candidates", icon: Users },
+  { href: "/companies", label: "Companies", icon: Building2 },
+  { href: "/organizations", label: "Organizations", icon: Network },
   { href: "/signals", label: "Signal Inbox", icon: Signal },
   { href: "/moves", label: "Relationship Moves", icon: Send },
   { href: "/review", label: "Review Queue", icon: ClipboardCheck },
@@ -30,8 +32,6 @@ const navItems = [
 ];
 
 const secondaryItems = [
-  { label: "Companies", icon: Building2 },
-  { label: "Organizations", icon: Network },
   { label: "Research", icon: Search },
   { label: "Prompt Library", icon: Sparkles },
   { label: "Knowledge Base", icon: Library },

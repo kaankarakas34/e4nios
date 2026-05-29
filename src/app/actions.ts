@@ -268,6 +268,67 @@ export async function updateRelationshipMoveAction(formData: FormData) {
   revalidatePath("/review");
 }
 
+export async function createCompanyAction(formData: FormData) {
+  const supabase = createAdminClient();
+
+  if (!supabase) {
+    throw new Error("Supabase environment variables are not configured.");
+  }
+
+  const name = text(formData, "name");
+
+  if (!name) {
+    throw new Error("Company name is required.");
+  }
+
+  const { error } = await supabase.from("companies").insert({
+    name,
+    website_url: text(formData, "website_url") || null,
+    industry: text(formData, "industry") || null,
+    city: text(formData, "city") || null,
+    country: text(formData, "country") || null,
+    company_size: text(formData, "company_size") || null,
+    notes: text(formData, "notes") || null,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  revalidatePath("/");
+  revalidatePath("/companies");
+}
+
+export async function createOrganizationAction(formData: FormData) {
+  const supabase = createAdminClient();
+
+  if (!supabase) {
+    throw new Error("Supabase environment variables are not configured.");
+  }
+
+  const name = text(formData, "name");
+
+  if (!name) {
+    throw new Error("Organization name is required.");
+  }
+
+  const { error } = await supabase.from("organizations").insert({
+    name,
+    organization_type: text(formData, "organization_type") || null,
+    website_url: text(formData, "website_url") || null,
+    city: text(formData, "city") || null,
+    country: text(formData, "country") || null,
+    notes: text(formData, "notes") || null,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  revalidatePath("/");
+  revalidatePath("/organizations");
+}
+
 export async function createLinearReviewTaskAction(formData: FormData) {
   const supabase = createAdminClient();
 
