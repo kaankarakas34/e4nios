@@ -14,6 +14,7 @@ import {
 import { runResearchOrchestrator, sourceUrlsFromText } from "@/lib/agents/orchestrator";
 import { targetTypes, type TargetType } from "@/lib/domain";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { missingSupabaseAdminEnvVars } from "@/lib/supabase/env";
 
 function text(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -194,7 +195,8 @@ export async function runResearchOrchestratorAction(formData: FormData) {
     const supabase = createAdminClient();
 
     if (!supabase) {
-      throw new Error("Supabase server environment variables are not configured in this deployment.");
+      const missing = missingSupabaseAdminEnvVars();
+      throw new Error(`Supabase admin environment is missing: ${missing.join(", ")}.`);
     }
 
     const prompt = text(formData, "prompt");

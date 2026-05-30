@@ -4,22 +4,7 @@ import {
   listKnowledgeItems,
   listPromptTemplates,
 } from "@/lib/supabase/queries";
-
-const envVars = [
-  "NEXT_PUBLIC_SUPABASE_URL",
-  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
-  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-  "SUPABASE_SECRET_KEY",
-  "SUPABASE_SERVICE_ROLE_KEY",
-  "OPENROUTER_API_KEY",
-  "OPENROUTER_DEFAULT_MODEL",
-  "OPENROUTER_RESEARCH_MODEL",
-  "LINEAR_API_KEY",
-  "LINEAR_TEAM_ID",
-  "LINKEDIN_CLIENT_ID",
-  "LINKEDIN_CLIENT_SECRET",
-  "LINKEDIN_REDIRECT_URI",
-];
+import { envHealthRows, missingSupabaseAdminEnvVars } from "@/lib/supabase/env";
 
 export default async function SettingsPage() {
   const [knowledgeItems, prompts, linkedInAccounts] = await Promise.all([
@@ -27,6 +12,8 @@ export default async function SettingsPage() {
     listPromptTemplates(),
     listLinkedInAccounts(),
   ]);
+  const envRows = envHealthRows();
+  const missingSupabase = missingSupabaseAdminEnvVars();
 
   return (
     <AppShell>
@@ -35,11 +22,35 @@ export default async function SettingsPage() {
         <p className="mt-1 text-sm text-[#a3a3a3]">
           Configure environment variables in Vercel and local development.
         </p>
+        {missingSupabase.length > 0 ? (
+          <div className="mt-5 rounded-md border border-[#3f1d1d] bg-[#180707] p-3 text-sm text-[#fca5a5]">
+            Supabase admin is not ready. Add {missingSupabase.join(", ")} in Vercel Production environment variables,
+            then redeploy.
+          </div>
+        ) : (
+          <div className="mt-5 rounded-md border border-[#1f3f2b] bg-[#07180d] p-3 text-sm text-[#86efac]">
+            Supabase admin is ready for server-side CRM writes.
+          </div>
+        )}
         <div className="mt-5 rounded-md border border-[#2a2a2a] bg-[#111111]">
-          {envVars.map((envVar) => (
-            <div className="flex items-center justify-between border-b border-[#242424] px-4 py-3 last:border-b-0" key={envVar}>
-              <code className="text-sm">{envVar}</code>
-              <span className="rounded-md bg-[#2a0f0f] px-2 py-1 text-xs text-[#fca5a5]">required</span>
+          {envRows.map((envVar) => (
+            <div
+              className="grid gap-2 border-b border-[#242424] px-4 py-3 last:border-b-0 md:grid-cols-[1fr_1fr_96px]"
+              key={envVar.name}
+            >
+              <code className="text-sm">{envVar.name}</code>
+              <span className="text-sm text-[#a3a3a3]">{envVar.requiredFor}</span>
+              <span
+                className={
+                  envVar.status === "ready"
+                    ? "w-fit rounded-md bg-[#0f2a16] px-2 py-1 text-xs text-[#86efac]"
+                    : envVar.status === "optional"
+                      ? "w-fit rounded-md bg-[#171717] px-2 py-1 text-xs text-[#d4d4d4]"
+                      : "w-fit rounded-md bg-[#2a0f0f] px-2 py-1 text-xs text-[#fca5a5]"
+                }
+              >
+                {envVar.status}
+              </span>
             </div>
           ))}
         </div>
