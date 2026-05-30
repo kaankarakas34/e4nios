@@ -303,11 +303,88 @@ export async function listResearchTasks() {
 
   const { data } = await supabase
     .from("research_tasks")
-    .select("id, target_segment, source_type, query, priority, status, result_count, metadata, created_at")
+    .select("id, campaign_id, segment_id, search_query_id, target_segment, source_type, engine, query, priority, status, result_count, retry_count, max_retries, metadata, created_at")
     .order("created_at", { ascending: false })
     .limit(80);
 
   return data ?? [];
+}
+
+export async function listResearchCampaigns() {
+  const supabase = createAdminClient();
+
+  if (!supabase) {
+    return [];
+  }
+
+  const { data } = await supabase
+    .from("research_campaigns")
+    .select("id, prompt, e4n_interpretation, status, target_result_cap, current_wave, segment_count, query_count, result_count, candidate_count, created_at, updated_at")
+    .order("created_at", { ascending: false })
+    .limit(30);
+
+  return data ?? [];
+}
+
+export async function getResearchCampaignDashboard(campaignId?: string) {
+  const supabase = createAdminClient();
+
+  if (!supabase) {
+    return null;
+  }
+
+  let resolvedCampaignId = campaignId;
+
+  if (!resolvedCampaignId) {
+    const { data: latest } = await supabase
+      .from("research_campaigns")
+      .select("id")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    resolvedCampaignId = latest?.id ? String(latest.id) : undefined;
+  }
+
+  if (!resolvedCampaignId) {
+    return null;
+  }
+
+  const [
+    campaign,
+    segments,
+    queries,
+    tasks,
+    sources,
+    entities,
+    candidates,
+    scores,
+    strategies,
+    iterations,
+  ] = await Promise.all([
+    supabase.from("research_campaigns").select("*").eq("id", resolvedCampaignId).maybeSingle(),
+    supabase.from("research_segments").select("*").eq("campaign_id", resolvedCampaignId).order("priority", { ascending: true }),
+    supabase.from("search_queries").select("*").eq("campaign_id", resolvedCampaignId).order("created_at", { ascending: true }).limit(120),
+    supabase.from("research_tasks").select("*").eq("campaign_id", resolvedCampaignId).order("created_at", { ascending: false }).limit(120),
+    supabase.from("source_results").select("*").eq("campaign_id", resolvedCampaignId).order("created_at", { ascending: false }).limit(100),
+    supabase.from("extracted_entities").select("*").eq("campaign_id", resolvedCampaignId).order("created_at", { ascending: false }).limit(100),
+    supabase.from("candidate_profiles").select("*").eq("campaign_id", resolvedCampaignId).order("evidence_count", { ascending: false }).limit(80),
+    supabase.from("profile_scores").select("*").eq("campaign_id", resolvedCampaignId).order("final_score", { ascending: false }).limit(80),
+    supabase.from("communication_strategies").select("*").eq("campaign_id", resolvedCampaignId).order("created_at", { ascending: false }).limit(80),
+    supabase.from("research_iterations").select("*").eq("campaign_id", resolvedCampaignId).order("wave", { ascending: false }).limit(10),
+  ]);
+
+  return {
+    campaign: campaign.data,
+    segments: segments.data ?? [],
+    queries: queries.data ?? [],
+    tasks: tasks.data ?? [],
+    sources: sources.data ?? [],
+    entities: entities.data ?? [],
+    candidates: candidates.data ?? [],
+    scores: scores.data ?? [],
+    strategies: strategies.data ?? [],
+    iterations: iterations.data ?? [],
+  };
 }
 
 export async function listKnowledgeItems() {

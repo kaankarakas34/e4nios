@@ -11,7 +11,7 @@ import {
   buildRelationshipSignal,
   scoreCandidate,
 } from "@/lib/agents/deterministic";
-import { runResearchOrchestrator, sourceUrlsFromText } from "@/lib/agents/orchestrator";
+import { createResearchCampaign } from "@/lib/research/research-orchestrator";
 import { targetTypes, type TargetType } from "@/lib/domain";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { missingSupabaseAdminEnvVars } from "@/lib/supabase/env";
@@ -200,18 +200,17 @@ export async function runResearchOrchestratorAction(formData: FormData) {
     }
 
     const prompt = text(formData, "prompt");
-    const maxTasks = Number(text(formData, "max_tasks") || "8");
-    const sourceUrls = sourceUrlsFromText(text(formData, "source_urls"));
+    const maxResults = Number(text(formData, "max_results") || "100");
 
     if (!prompt) {
       throw new Error("Research prompt is required.");
     }
 
-    await runResearchOrchestrator(supabase, {
+    const result = await createResearchCampaign(supabase, {
       prompt,
-      maxTasks,
-      sourceUrls,
+      maxResults,
     });
+    destination = `/research?status=started&campaign=${encodeURIComponent(String(result.campaign.id))}`;
 
     revalidatePath("/");
     revalidatePath("/research");
