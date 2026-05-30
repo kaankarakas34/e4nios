@@ -4,7 +4,12 @@ import { researchPipelineStages } from "@/lib/agents/research-workflow";
 import { buildDuckDuckGoSearchUrl, buildGoogleSearchUrl } from "@/lib/search/free-research";
 import { listResearchTasks } from "@/lib/supabase/queries";
 
-export default async function ResearchPage() {
+export default async function ResearchPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ error?: string; status?: string }>;
+}) {
+  const params = await searchParams;
   const tasks = await listResearchTasks();
 
   return (
@@ -23,6 +28,18 @@ export default async function ResearchPage() {
             Free mode
           </span>
         </div>
+
+        {params?.error ? (
+          <div className="mt-5 rounded-md border border-[#3f1d1d] bg-[#180707] p-3 text-sm text-[#fca5a5]">
+            Orchestrator could not start: {params.error}
+          </div>
+        ) : null}
+
+        {params?.status === "started" ? (
+          <div className="mt-5 rounded-md border border-[#3f1d1d] bg-[#1f0a0a] p-3 text-sm text-[#fca5a5]">
+            Orchestrator started and created the staged research tasks.
+          </div>
+        ) : null}
 
         <form action={runResearchOrchestratorAction} className="mt-5 rounded-md border border-[#2a2a2a] bg-[#111111] p-4">
           <label className="text-sm font-medium" htmlFor="prompt">

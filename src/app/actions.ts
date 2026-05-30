@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import {
   buildApproachStrategy,
@@ -187,29 +188,39 @@ export async function createCandidateAction(formData: FormData) {
 }
 
 export async function runResearchOrchestratorAction(formData: FormData) {
-  const supabase = createAdminClient();
+  let destination = "/research?status=started";
 
-  if (!supabase) {
-    throw new Error("Supabase environment variables are not configured.");
+  try {
+    const supabase = createAdminClient();
+
+    if (!supabase) {
+      throw new Error("Supabase server environment variables are not configured in this deployment.");
+    }
+
+    const prompt = text(formData, "prompt");
+    const maxTasks = Number(text(formData, "max_tasks") || "8");
+    const sourceUrls = sourceUrlsFromText(text(formData, "source_urls"));
+
+    if (!prompt) {
+      throw new Error("Research prompt is required.");
+    }
+
+    await runResearchOrchestrator(supabase, {
+      prompt,
+      maxTasks,
+      sourceUrls,
+    });
+
+    revalidatePath("/");
+    revalidatePath("/research");
+    revalidatePath("/agents");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown research orchestrator error.";
+    console.error("Research orchestrator action failed", error);
+    destination = `/research?error=${encodeURIComponent(message)}`;
   }
 
-  const prompt = text(formData, "prompt");
-  const maxTasks = Number(text(formData, "max_tasks") || "8");
-  const sourceUrls = sourceUrlsFromText(text(formData, "source_urls"));
-
-  if (!prompt) {
-    throw new Error("Research prompt is required.");
-  }
-
-  await runResearchOrchestrator(supabase, {
-    prompt,
-    maxTasks,
-    sourceUrls,
-  });
-
-  revalidatePath("/");
-  revalidatePath("/research");
-  revalidatePath("/agents");
+  redirect(destination);
 }
 
 export async function updateCandidateReviewAction(formData: FormData) {
