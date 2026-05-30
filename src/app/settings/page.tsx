@@ -6,6 +6,8 @@ import {
 } from "@/lib/supabase/queries";
 import { envHealthRows, missingSupabaseAdminEnvVars } from "@/lib/supabase/env";
 
+export const dynamic = "force-dynamic";
+
 export default async function SettingsPage() {
   const [knowledgeItems, prompts, linkedInAccounts] = await Promise.all([
     listKnowledgeItems(),
