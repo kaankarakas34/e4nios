@@ -13,23 +13,23 @@ export default async function ResearchPage() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold">Research Orchestrator</h1>
-            <p className="mt-1 max-w-3xl text-sm text-[#69746d]">
+            <p className="mt-1 max-w-3xl text-sm text-[#a3a3a3]">
               Describe who E4N should find. The orchestrator uses DeepSeek V4 Flash through OpenRouter to create a
               company-first roadmap: qualified company pool, commercial verification, decision maker discovery,
               person-company analysis, E4N scoring, and next action.
             </p>
           </div>
-          <span className="w-fit rounded-md bg-[#e4eee9] px-2 py-1 text-xs font-medium text-[#1f6f5b]">
+          <span className="w-fit rounded-md bg-[#1f0a0a] px-2 py-1 text-xs font-medium text-[#ef4444]">
             Free mode
           </span>
         </div>
 
-        <form action={runResearchOrchestratorAction} className="mt-5 rounded-md border border-[#d8ded5] bg-white p-4">
+        <form action={runResearchOrchestratorAction} className="mt-5 rounded-md border border-[#2a2a2a] bg-[#111111] p-4">
           <label className="text-sm font-medium" htmlFor="prompt">
             Mission prompt
           </label>
           <textarea
-            className="mt-2 min-h-32 w-full rounded-md border border-[#cbd5cc] bg-white px-3 py-2 text-sm outline-none focus:border-[#1f6f5b]"
+            className="mt-2 min-h-32 w-full rounded-md border border-[#3a3a3a] bg-[#111111] px-3 py-2 text-sm outline-none focus:border-[#ef4444]"
             id="prompt"
             name="prompt"
             placeholder="Ornek: Istanbul'da saglik turizmi yapan, uluslararasi hasta operasyonu olan, kurucu veya genel mudur seviyesinde karar vericileri bul."
@@ -41,7 +41,7 @@ export default async function ResearchPage() {
                 Max tasks
               </label>
               <input
-                className="mt-2 h-10 w-full rounded-md border border-[#cbd5cc] px-3 text-sm"
+                className="mt-2 h-10 w-full rounded-md border border-[#3a3a3a] px-3 text-sm"
                 defaultValue="8"
                 id="max_tasks"
                 max="20"
@@ -50,7 +50,7 @@ export default async function ResearchPage() {
                 type="number"
               />
             </div>
-            <div className="rounded-md bg-[#f6f8f4] p-3 text-sm text-[#69746d]">
+            <div className="rounded-md bg-[#101010] p-3 text-sm text-[#a3a3a3]">
               Free mode: no SerpAPI, Google API, Brave API, Tavily, Exa, or LinkedIn. The bot creates staged research
               tasks and can fetch only public source URLs you provide.
             </div>
@@ -59,40 +59,40 @@ export default async function ResearchPage() {
             Public source URLs
           </label>
           <textarea
-            className="mt-2 min-h-24 w-full rounded-md border border-[#cbd5cc] bg-white px-3 py-2 text-sm outline-none focus:border-[#1f6f5b]"
+            className="mt-2 min-h-24 w-full rounded-md border border-[#3a3a3a] bg-[#111111] px-3 py-2 text-sm outline-none focus:border-[#ef4444]"
             id="source_urls"
             name="source_urls"
             placeholder="Optional. Add one public URL per line: fair exhibitor page, chamber directory, technopark company list, event speaker page..."
           />
-          <button className="mt-4 h-10 rounded-md bg-[#1f6f5b] px-4 text-sm font-medium text-white" type="submit">
+          <button className="mt-4 h-10 rounded-md bg-[#ef4444] px-4 text-sm font-medium text-white" type="submit">
             Start orchestrator
           </button>
         </form>
 
-        <section className="mt-4 rounded-md border border-[#d8ded5] bg-[#f6f8f4] p-4">
-          <h2 className="text-sm font-semibold text-[#1e2b23]">Research strategy</h2>
+        <section className="mt-4 rounded-md border border-[#2a2a2a] bg-[#101010] p-4">
+          <h2 className="text-sm font-semibold text-[#f5f5f5]">Research strategy</h2>
           <div className="mt-3 grid gap-2 md:grid-cols-3">
             {researchPipelineStages.map((stage, index) => (
-              <div className="rounded-md border border-[#d8ded5] bg-white p-3" key={stage.id}>
-                <p className="text-xs font-semibold uppercase text-[#69746d]">Step {index + 1}</p>
-                <p className="mt-1 text-sm text-[#1e2b23]">{stage.label}</p>
-                <p className="mt-2 text-xs text-[#69746d]">{stage.ownerAgent}</p>
+              <div className="rounded-md border border-[#2a2a2a] bg-[#111111] p-3" key={stage.id}>
+                <p className="text-xs font-semibold uppercase text-[#a3a3a3]">Step {index + 1}</p>
+                <p className="mt-1 text-sm text-[#f5f5f5]">{stage.label}</p>
+                <p className="mt-2 text-xs text-[#a3a3a3]">{stage.ownerAgent}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="mt-5 rounded-md border border-[#d8ded5] bg-white">
-          <div className="border-b border-[#edf0ea] px-4 py-3">
+        <section className="mt-5 rounded-md border border-[#2a2a2a] bg-[#111111]">
+          <div className="border-b border-[#242424] px-4 py-3">
             <h2 className="text-sm font-semibold">Research task queue</h2>
-            <p className="mt-1 text-sm text-[#69746d]">
+            <p className="mt-1 text-sm text-[#a3a3a3]">
               These are not CRM candidates yet. They are research instructions and raw discovery lanes.
             </p>
           </div>
           {tasks.length === 0 ? (
-            <p className="p-4 text-sm text-[#69746d]">No research tasks yet.</p>
+            <p className="p-4 text-sm text-[#a3a3a3]">No research tasks yet.</p>
           ) : (
-            <div className="divide-y divide-[#edf0ea]">
+            <div className="divide-y divide-[#242424]">
               {tasks.map((task) => {
                 const query = String(task.query ?? "");
                 const googleUrl =
@@ -121,30 +121,30 @@ export default async function ResearchPage() {
                   <div className="grid gap-3 p-4 xl:grid-cols-[1fr_180px_120px]" key={String(task.id)}>
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-medium text-[#1e2b23]">{String(task.source_type)}</p>
-                        <span className="rounded-md bg-[#f1f5f0] px-2 py-1 text-xs text-[#34413a]">
+                        <p className="font-medium text-[#f5f5f5]">{String(task.source_type)}</p>
+                        <span className="rounded-md bg-[#171717] px-2 py-1 text-xs text-[#d4d4d4]">
                           P{String(task.priority ?? 5)}
                         </span>
                         {pipelineStage ? (
-                          <span className="rounded-md bg-[#e4eee9] px-2 py-1 text-xs text-[#1f6f5b]">
+                          <span className="rounded-md bg-[#1f0a0a] px-2 py-1 text-xs text-[#ef4444]">
                             {pipelineStage}
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-2 text-sm text-[#34413a]">{query}</p>
+                      <p className="mt-2 text-sm text-[#d4d4d4]">{query}</p>
                       <div className="mt-2 flex gap-3">
-                        <a className="text-xs text-[#1f6f5b]" href={googleUrl} rel="noreferrer" target="_blank">
+                        <a className="text-xs text-[#ef4444]" href={googleUrl} rel="noreferrer" target="_blank">
                           Google link
                         </a>
-                        <a className="text-xs text-[#1f6f5b]" href={duckUrl} rel="noreferrer" target="_blank">
+                        <a className="text-xs text-[#ef4444]" href={duckUrl} rel="noreferrer" target="_blank">
                           DuckDuckGo link
                         </a>
                       </div>
                     </div>
-                    <p className="text-sm text-[#69746d]">{String(task.target_segment)}</p>
+                    <p className="text-sm text-[#a3a3a3]">{String(task.target_segment)}</p>
                     <div className="text-sm">
-                      <p className="rounded-md bg-[#e4eee9] px-2 py-1 text-xs text-[#1f6f5b]">{String(task.status)}</p>
-                      <p className="mt-2 text-xs text-[#69746d]">{String(task.result_count ?? 0)} results</p>
+                      <p className="rounded-md bg-[#1f0a0a] px-2 py-1 text-xs text-[#ef4444]">{String(task.status)}</p>
+                      <p className="mt-2 text-xs text-[#a3a3a3]">{String(task.result_count ?? 0)} results</p>
                     </div>
                   </div>
                 );
