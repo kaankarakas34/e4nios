@@ -161,6 +161,13 @@ export const researchPipelineStages = [
 ] as const;
 
 export const researchSourceTypes = [
+  "startup_ecosystem_databases",
+  "venture_capital_portfolios",
+  "accelerator_incubator_batches",
+  "angel_investor_networks",
+  "fund_manager_pages",
+  "fintech_association_lists",
+  "startup_events_demo_days",
   "fair_exhibitor_lists",
   "events_summits_conferences",
   "chambers_industry_committees",

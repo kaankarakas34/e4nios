@@ -1,14 +1,14 @@
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { OpenRouterProvider } from "@/lib/ai/openrouter";
-import { researchPipelineStages, researchSourceTypes } from "@/lib/agents/research-workflow";
+import { OpenRouterProvider } from "../ai/openrouter";
 import {
   buildDuckDuckGoSearchUrl,
   buildGoogleSearchUrl,
   fetchPublicSource,
   parseSourceUrls,
-} from "@/lib/search/free-research";
-import type { SupabaseClient } from "@supabase/supabase-js";
+} from "../search/free-research";
+import { researchPipelineStages, researchSourceTypes } from "./research-workflow";
 
 const ResearchTaskSchema = z.object({
   pipeline_stage: z.string().refine(
@@ -23,8 +23,25 @@ const ResearchTaskSchema = z.object({
   why_this_query: z.string(),
 });
 
+const SearchStrategySchema = z.object({
+  target_personas: z.array(z.string()).default([]),
+  target_organization_types: z.array(z.string()).default([]),
+  priority_roles: z.array(z.string()).default([]),
+  source_hypotheses: z.array(z.string()).default([]),
+  keyword_groups: z.array(z.array(z.string())).default([]),
+  negative_keywords: z.array(z.string()).default([]),
+});
+
 const OrchestratorPlanSchema = z.object({
   mission_summary: z.string(),
+  search_strategy: SearchStrategySchema.default({
+    target_personas: [],
+    target_organization_types: [],
+    priority_roles: [],
+    source_hypotheses: [],
+    keyword_groups: [],
+    negative_keywords: [],
+  }),
   assumptions: z.array(z.string()).default([]),
   roadmap: z.array(z.string()).default([]),
   source_tasks: z.array(ResearchTaskSchema).min(1).max(20),
@@ -47,26 +64,152 @@ const stageText = researchPipelineStages
   .map((stage, index) => `${index + 1}. ${stage.id}: ${stage.label}`)
   .join("\n");
 
-function fallbackTaskForStage(prompt: string, index: number) {
-  const stage = researchPipelineStages[index];
+const ecosystemStrategy = {
+  personas: [
+    "finans profesyonelleri",
+    "yatırımcılar",
+    "girişimciler",
+    "venture capital ekipleri",
+    "melek yatırımcılar",
+    "fon yöneticileri",
+    "fintech kurucuları",
+    "startup ekosistemi karar vericileri",
+  ],
+  organizationTypes: [
+    "VC fonları",
+    "melek yatırım ağları",
+    "fintech şirketleri",
+    "portföy startup'ları",
+    "kuluçka ve hızlandırma programları",
+    "teknopark girişim merkezleri",
+    "startup etkinlikleri ve demo day listeleri",
+  ],
+  roles: [
+    "Founder",
+    "Co-founder",
+    "Managing Partner",
+    "General Partner",
+    "Investment Manager",
+    "Investment Director",
+    "Fund Manager",
+    "Angel Investor",
+    "CEO",
+    "CFO",
+    "Fintech Founder",
+  ],
+  keywordGroups: [
+    ["Türkiye", "venture capital", "portfolio", "managing partner"],
+    ["İstanbul", "fintech", "kurucu", "CEO"],
+    ["Türkiye", "melek yatırım ağı", "yatırımcı"],
+    ["startup", "demo day", "speaker", "investor"],
+    ["girişim sermayesi", "fon yöneticisi", "yatırım komitesi"],
+    ["teknopark", "fintech", "startup", "kurucu"],
+  ],
+  sourceTypes: [
+    "venture_capital_portfolios",
+    "angel_investor_networks",
+    "startup_ecosystem_databases",
+    "accelerator_incubator_batches",
+    "startup_events_demo_days",
+    "fund_manager_pages",
+    "fintech_association_lists",
+  ],
+};
+
+function promptLooksLikeFinanceStartupEcosystem(prompt: string) {
+  const normalized = prompt.toLocaleLowerCase("tr-TR");
+
+  return [
+    "finans",
+    "yatırım",
+    "yatirim",
+    "venture",
+    "capital",
+    "vc",
+    "melek",
+    "fon",
+    "fintech",
+    "startup",
+    "girişim",
+    "girisim",
+  ].some((keyword) => normalized.includes(keyword));
+}
+
+function buildFallbackStrategy(prompt: string) {
+  if (promptLooksLikeFinanceStartupEcosystem(prompt)) {
+    return {
+      target_personas: ecosystemStrategy.personas,
+      target_organization_types: ecosystemStrategy.organizationTypes,
+      priority_roles: ecosystemStrategy.roles,
+      source_hypotheses: [
+        "VC portföy sayfaları yatırımcı ve portföy şirket kurucularını verir.",
+        "Melek yatırım ağı üye sayfaları karar verici yatırımcı havuzu verir.",
+        "Hızlandırıcı batch ve demo day sayfaları fintech/startup kurucularını verir.",
+        "Etkinlik konuşmacı ve jüri sayfaları görünürlüğü yüksek yatırımcıları ve founder'ları verir.",
+      ],
+      keyword_groups: ecosystemStrategy.keywordGroups,
+      negative_keywords: ["iş ilanı", "kariyer", "staj", "kurs", "sertifika"],
+    };
+  }
 
   return {
-    pipeline_stage: stage.id,
-    source_type: researchSourceTypes[index % researchSourceTypes.length],
-    target_segment: prompt,
-    query: `${prompt} | ${stage.label}`,
-    priority: index + 1,
-    expected_output: stage.label,
-    why_this_query: `Fallback task for ${stage.ownerAgent}.`,
+    target_personas: [prompt],
+    target_organization_types: ["sector companies", "events", "associations", "directories"],
+    priority_roles: ["Founder", "Co-founder", "CEO", "General Manager", "Partner", "Director"],
+    source_hypotheses: [
+      "Official company and event pages are stronger first-pass sources than generic search results.",
+      "Decision maker discovery should happen after a company or organization pool exists.",
+    ],
+    keyword_groups: [[prompt, "founder", "CEO"], [prompt, "event", "speaker"], [prompt, "association", "member"]],
+    negative_keywords: ["job", "career", "internship", "course"],
   };
 }
 
-function fallbackPlan(prompt: string, maxTasks: number): OrchestratorPlan {
+function quoteSearchTerm(term: string) {
+  return /\s/.test(term) ? `"${term}"` : term;
+}
+
+function queryFromParts(parts: string[]) {
+  return parts.filter(Boolean).map(quoteSearchTerm).join(" ");
+}
+
+function fallbackTaskForStage(prompt: string, index: number) {
+  const stage = researchPipelineStages[index];
+  const strategy = buildFallbackStrategy(prompt);
+  const sourceType = promptLooksLikeFinanceStartupEcosystem(prompt)
+    ? ecosystemStrategy.sourceTypes[index % ecosystemStrategy.sourceTypes.length]
+    : researchSourceTypes[index % researchSourceTypes.length];
+  const keywordGroup = strategy.keyword_groups[index % strategy.keyword_groups.length] ?? [prompt];
+  const role = strategy.priority_roles[index % strategy.priority_roles.length] ?? "Founder";
+  const organizationType = strategy.target_organization_types[index % strategy.target_organization_types.length] ?? prompt;
+  const stageQueries: Record<string, string> = {
+    qualified_company_pool: queryFromParts([...keywordGroup, organizationType, "Türkiye"]),
+    company_commercial_verification: queryFromParts([...keywordGroup, "portfolio", "about", "team"]),
+    decision_maker_discovery: queryFromParts([...keywordGroup, role, "team", "founder"]),
+    person_company_analysis: queryFromParts([...keywordGroup, role, "speaker", "interview"]),
+    e4n_fit_scoring: queryFromParts([...keywordGroup, "B2B", "network", "investment"]),
+    next_action_recommendation: queryFromParts([...keywordGroup, "event", "speaker", "partnership"]),
+  };
+
+  return {
+    pipeline_stage: stage.id,
+    source_type: sourceType,
+    target_segment: strategy.target_personas[index % strategy.target_personas.length] ?? prompt,
+    query: stageQueries[stage.id] ?? queryFromParts([...keywordGroup, role]),
+    priority: index + 1,
+    expected_output: `${stage.label}: ${organizationType} / ${role}`,
+    why_this_query: `Fallback strategy task for ${stage.ownerAgent}; decomposed the mission into persona, source, role, and keyword groups instead of searching the raw prompt.`,
+  };
+}
+
+export function buildStrategicFallbackPlan(prompt: string, maxTasks: number): OrchestratorPlan {
   const fallbackTasks = researchPipelineStages.map((_, index) => fallbackTaskForStage(prompt, index));
+  const searchStrategy = buildFallbackStrategy(prompt);
 
   return {
     mission_summary: prompt,
-    assumptions: ["OpenRouter plan generation failed or is not configured; deterministic fallback created safe research tasks."],
+    search_strategy: searchStrategy,
+    assumptions: ["OpenRouter plan generation failed or is not configured; deterministic fallback created strategic research tasks."],
     roadmap: [
       "Build a qualified company pool.",
       "Verify company commercial reality.",
@@ -103,6 +246,10 @@ function ensurePipelineCoverage(plan: OrchestratorPlan, prompt: string, maxTasks
 
   return {
     ...plan,
+    search_strategy: {
+      ...buildFallbackStrategy(prompt),
+      ...plan.search_strategy,
+    },
     source_tasks: tasks.slice(0, maxTasks),
   };
 }
@@ -118,6 +265,16 @@ Rules:
 - You do not have web search, browser, crawler, or external lookup access inside this LLM call.
 - Never say you found, verified, checked, browsed, searched the web, saw a page, or confirmed a fact.
 - Phrase all outputs as planned queries, source hypotheses, and next research tasks.
+- First decompose the mission into target personas, organization types, priority roles, source hypotheses, keyword groups, and negative keywords.
+- Do not use the user's raw mission as a search query. Every query must be a targeted query made from persona + source + role + location/sector keywords.
+- For broad missions, create separate lanes. Example: VC funds, angel networks, fintech founders, accelerator batches, demo day speakers, fund managers.
+- Each source task should be assignable to the agent that owns its pipeline_stage.
+- Prefer query patterns like:
+  - "Türkiye venture capital portfolio managing partner"
+  - "İstanbul fintech kurucu CEO"
+  - "melek yatırım ağı üyeleri yatırımcı"
+  - "startup demo day speaker investor"
+  - "girişim sermayesi fon yöneticisi"
 - Fully free mode only: do not rely on paid, credit-based, or metered search APIs.
 - LinkedIn is completely out of scope for this flow. Do not create LinkedIn queries or LinkedIn tasks.
 - The mandatory workflow is:
@@ -133,6 +290,14 @@ ${prompt}
 Return JSON with:
 {
   "mission_summary": string,
+  "search_strategy": {
+    "target_personas": string[],
+    "target_organization_types": string[],
+    "priority_roles": string[],
+    "source_hypotheses": string[],
+    "keyword_groups": string[][],
+    "negative_keywords": string[]
+  },
   "assumptions": string[],
   "roadmap": string[],
   "source_tasks": [
@@ -150,7 +315,7 @@ Return JSON with:
   "stop_rules": string[]
 }
 
-Create at most ${maxTasks} source_tasks. Never include LinkedIn.`;
+Create at most ${maxTasks} source_tasks. Never include LinkedIn. Never put the full mission sentence into query.`;
 
   const result = await provider.generateJson<unknown>({
     system,
@@ -184,7 +349,7 @@ export async function runResearchOrchestrator(
     raw = generated.raw;
     modelName = generated.model;
   } catch (error) {
-    plan = fallbackPlan(prompt, safeMaxTasks);
+    plan = buildStrategicFallbackPlan(prompt, safeMaxTasks);
     modelProvider = "local";
     modelName = "deterministic_orchestrator_fallback";
     status = "completed_with_fallback";
@@ -208,6 +373,7 @@ export async function runResearchOrchestrator(
           pipeline_stage: task.pipeline_stage,
           expected_output: task.expected_output,
           why_this_query: task.why_this_query,
+          search_strategy: plan.search_strategy,
           google_search_url: buildGoogleSearchUrl(task.query),
           duckduckgo_search_url: buildDuckDuckGoSearchUrl(task.query),
           free_mode: true,
